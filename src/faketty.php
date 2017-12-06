@@ -1,20 +1,7 @@
-# Module API
+<?php
 
-def apply_faketty(code, faketty=False):
-    if faketty:
-        code = "python -m run.faketty /bin/bash -c %s" % shlex.quote(code)
-    return code
+// Module API
 
-
-# Main program
-
-if __name__ == '__main__':
-
-    import sys
-    import pexpect
-
-    child = pexpect.spawn(sys.argv[1], sys.argv[2:])
-    child.logfile_read = sys.stdout.buffer
-    child.expect(pexpect.EOF)
-    child.close()
-    exit(child.exitstatus)
+function applyFaketty($code, $faketty=false) {
+    return $faketty ? "script -qefc {$code}" : $code;
+}

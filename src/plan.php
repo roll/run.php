@@ -1,89 +1,101 @@
-# Module API
+<?php
 
-class Plan(object):
+// Module API
 
-    # Public
+class Plan {
 
-    def __init__(self, commands, mode):
-        self._commands = commands
-        self._mode = mode
+    // Public
 
-    def __repr__(self):
-        return self._commands
+    function __construct($commands, $mode) {
+        $this->_commands = $commands;
+        $this->_mode = $mode;
+    }
 
-    def explain(self):
+    function explain() {
 
-        # Explain
-        lines = []
-        plain = True
-        for command in self._commands:
-            if self._mode in ['sequence', 'parallel', 'multiplex']:
-                if not command.variable:
-                    if plain:
-                        lines.append('[%s]' % self._mode.upper())
-                    plain = False
-            code = command.code
-            if command.variable:
-                code = '%s="%s"' % (command.variable, command.code)
-            lines.append('%s$ %s' % (' '*(0 if plain else 4), code))
+        // Explain
+        $lines = [];
+        $plain = true;
+        foreach ($this->_commands as $command) {
+            if (in_array($this->_mode, ['sequence', 'parallel', 'multiplex'])) {
+                if (!$command->variable()) {
+                    $mode = strtoupper($this->_mode);
+                    if ($plain) $lines.push("[{$mode}]");
+                    $plain = false;
+                }
+            }
+            $code = $command->code();
+            if ($command->variable()) $code = "{$command->variable()}='{$command->code()}'";
+            $indent = str_repeat(' ', $plain ? 0 : 4);
+            array_push($lines, "{$indent} {$code}");
+        }
 
-        return '\n'.join(lines)
+        return join("\n", $lines);
 
-    def execute(self, argv, quiet=False, faketty=False):
-        commands = copy(self._commands)
+    }
 
-        # Variables
-        varnames = []
-        variables = []
-        for command in copy(commands):
-            if command.variable:
-                variables.append(command)
-                varnames.append(command.variable)
-                commands.remove(command)
-        executors.execute_sync(variables,
-            environ=os.environ, quiet=quiet)
-        if not commands:
-            print(os.environ[varnames[-1]])
-            return
+    function execute($argv, $quiet, $faketty) {
+        $commands = $this->_commands;
 
-        # Update environ
-        os.environ['RUNARGS'] = ' '.join(argv)
-        runvars = os.environ.get('RUNVARS')
-        if runvars:
-            import dotenv
-            dotenv.load_dotenv(runvars)
+        // Variables
+        $varnames = [];
+        $variables = [];
+        $commands_copy = $commands;
+        foreach ($commands_copy as $command) {
+            if ($command->variable()) {
+                array_push($variables, $command);
+                array_push($varnames, $command->variable());
+                $commands = array_diff($commands, [$command]);
+            }
+            executeSync($variables, $_ENV, $quiet);
+            if (!count($commands)) {
+                print($_ENV[$varnames[count($varnames) - 1]]);
+                return;
+            }
+        }
 
-        # Log prepared
-        if not quiet:
-            items = []
-            start = datetime.datetime.now()
-            for name in varnames + ['RUNARGS']:
-                items.append('%s=%s' % (name, os.environ.get(name)))
-            print('[run] Prepared "%s"' % '; '.join(items))
+        // Update environ
+        $_ENV['RUNARGS'] = join(' ', $argv);
+        $runvars = $_ENV['RUNVARS'];
+        if ($runvars) {
+            $dotenv = new Dotenv\Dotenv('.', $runvars);
+            $dotenv->load();
+        }
 
-        # Directive
-        if self._mode == 'directive':
-            executors.execute_sync(commands,
-                environ=os.environ, quiet=quiet)
+        // Log prepared
+        $start = microtime(true);
+        if (!quiet) {
+            $items = [];
+            foreach (array_merge($varnames, ['RUNARGS']) as $name) {
+                array_push($items, "{$name}={$_ENV[$name]}");
+            }
+            $items = join('; ', $items);
+            print("[run] Prepared '{$items}'");
+        }
 
-        # Sequence
-        elif self._mode == 'sequence':
-            executors.execute_sync(commands,
-                environ=os.environ, quiet=quiet)
+        // Directive
+        if ($this->_mode === 'directive') {
+            executeSync($commands, $_ENV, $quiet);
 
-        # Parallel
-        elif self._mode == 'parallel':
-            executors.execute_async(commands,
-                environ=os.environ, quiet=quiet, faketty=faketty)
+            // Sequence
+        } else if ($this->_mode === 'sequence') {
+            executeSync($commands, $_ENV, $quiet);
 
-        # Multiplex
-        elif self._mode == 'multiplex':
-            executors.execute_async(commands,
-                environ=os.environ, multiplex=True, quiet=quiet, faketty=faketty)
+            // Parallel
+        } else if ($this->_mode === 'parallel') {
+            executeAsync($commands, $_ENV, $quiet, $faketty);
 
-        # Log finished
-        if not quiet:
-            stop = datetime.datetime.now()
-            time = round((stop - start).total_seconds(), 3)
-            message = '[run] Finished in %s seconds'
-            print(message % time)
+            // Multiplex
+        } else if ($this->_mode === 'multiplex') {
+            executeAsync($commands, $_ENV, true, $quiet, $faketty);
+        }
+
+        // Log finished
+        $stop = microtime(true);
+        if (!quiet) {
+            $time = $start - $stop;
+            print("[run] Finished in {$time} seconds");
+        }
+
+    }
+}

@@ -1,31 +1,35 @@
-# Main program
+<?php
+require_once('vendor/autoload.php');
 
-if __name__ == '__main__':
+// Main program
 
-    # Arguments
-    argv = sys.argv[1:]
+# Arguments
+$argv = array_slice($argv);
 
-    # Path argument
-    path = 'run.yml'
-    if '--run-path' in argv:
-        index = argv.index('--run-path')
-        path = argv.pop(index + 1)
-        argv.pop(index)
+# Path argument
+$path = 'run.yml';
+if (in_array('--run-path', $argv)) {
+    $index = array_search('--run-path', $argv);
+    $path = $argv[$index + 1];
+    array_splice($argv, $index, 2);
+}
 
-    # Complete argument
-    complete = False
-    if '--run-complete' in argv:
-        argv.remove('--run-complete')
-        complete = True
+# Complete argument
+$complete = False;
+if (in_array('--run-complete', $argv)) {
+    $argv = array_diff($argv, ['--run-complete']);
+    $complete = True;
+}
 
-    # Prepare
-    config, options = helpers.read_config(path)
-    task = Task(config, options=options)
+# Prepare
+[$config, $options] = read_config($path);
+$task = new Task($config, $options);
 
-    # Complete
-    if complete:
-        task.complete(argv)
-        exit()
+# Complete
+if ($complete) {
+    $task->complete(argv);
+    exit();
+}
 
-    # Run
-    task.run(argv)
+# Run
+task->run(argv);

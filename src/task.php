@@ -1,352 +1,419 @@
-# Module API
+<?php
 
-class Task(object):
+// Module API
 
-    # Public
+class Task {
 
-    def __init__(self, descriptor, options={}, parent=None, parent_type=None, quiet=False):
-        self._parent = parent
+    // Public
 
-        # Prepare
-        desc = '' if parent else 'General run description'
-        name, code = list(descriptor.items())[0]
-        if isinstance(code, dict):
-            desc = code['desc']
-            code = code['code']
+    function __construct($descriptor, $options, $parent, $parent_type, $quiet) {
+        $this->_parent = parent;
 
-        # Optional
-        optional = False
-        if name.startswith('/'):
-            name = name[1:]
-            optional = True
+        // Prepare
+        $desc = parent ? '' : 'General run description';
+        foreach(array_slice($descriptor, 0, 1) as $key => $value) {
+            $name = $key;
+            $code = $value;
+        }
+        if (is_array($code)) {
+            $desc = $code['desc'];
+            $code = $code['code'];
+        }
 
-        # Quiet
-        if name.strip(')').endswith('!'):
-            name = ''.join(name.rsplit('!', 1))
-            quiet = True
+        // Optional
+        $optional = false;
+        if (substr($name, 0, 1) === '/') {
+            $name = array_slice($name, 1);
+            $optional = true;
+        }
 
-        # Directive type
-        type = 'directive'
+        // Quiet
+        if (strpos($name, '!') !== false) {
+            $name = str_replace($name, '!', '');
+            $quiet = true;
+        }
 
-        # Variable type
-        if name.isupper():
-            type = 'variable'
-            desc = 'Prints the variable'
+        // Directive type
+        $type = 'directive';
 
-        # Sequence type
-        childs = []
-        if isinstance(code, list):
-            type = 'sequence'
+        // Variable type
+        if ($name === strtoupper($name)) {
+            $type = 'variable';
+            $desc = 'Prints the variable';
+        }
 
-            # Parent type
-            if parent_type in ['parallel', 'multiplex']:
-                type = parent_type
+        // Sequence type
+        $childs = [];
+        if (is_array($code)) {
+            $type = 'sequence';
 
-            # Parallel type
-            if name.startswith('(') and name.endswith(')'):
-                if len(self.parents) >= 2:
-                    message = 'Subtask descriptions and execution control not supported'
-                    helpers.print_message('general', message=message)
-                    exit(1)
-                name = name[1:-1]
-                type = 'parallel'
+            // Parent type
+            if (in_array($parent_type, ['parallel', 'multiplex'])) {
+                $type = $parent_type;
+            }
 
-            # Multiple type
-            if name.startswith('(') and name.endswith(')'):
-                name = name[1:-1]
-                type = 'multiplex'
+            // Parallel type
+            if (substr($name, 0, 1) === '(' && substr($name, -1, 1) === ')') {
+                if (count($this->parents()) >= 2) {
+                    $message = 'Subtask descriptions and execution control not supported';
+                    print_message('general', ['message' => message]);
+                    exit(1);
+                }
+                $name = array_slice($name, 1, -1);
+                $type = 'parallel';
+            }
 
-            # Create childs
-            for descriptor in code:
-                if not isinstance(descriptor, dict):
-                    descriptor = {'': descriptor}
-                child = Task(descriptor,
-                    options=options, parent=self, parent_type=type, quiet=quiet)
-                childs.append(child)
+            // Multiplex type
+            if (substr($name, 0, 1) === '(' && substr($name, -1, 1) === ')') {
+                $name = array_slice($name, 1, -1);
+                $type = 'multiplex';
+            }
 
-            # Reset code
-            code = None
+            // Create childs
+            foreach ($code as $descriptor) {
+                if (!is_array($descriptor)) $descriptor = ['' => $descriptor];
+                array_push($childs, new Task($descriptor, $options, self, $type, $quiet));
+            }
 
-        # Set attributes
-        self._name = name
-        self._code = code
-        self._type = type
-        self._desc = desc
-        self._quiet = quiet
-        self._childs = childs
-        self._options = options
-        self._optional = optional
+            // Reset code
+            $code = null;
 
-    def __repr__(self):
-        return self.qualified_name
+        }
 
-    @property
-    def name(self):
-        return self._name
+        // Set attributes
+        $this->_name = name;
+        $this->_code = code;
+        $this->_type = type;
+        $this->_desc = desc;
+        $this->_quiet = quiet;
+        $this->_childs = childs;
+        $this->_options = options;
+        $this->_optional = optional;
 
-    @property
-    def code(self):
-        return self._code
+    }
 
-    @property
-    def type(self):
-        return self._type
+    function name() {
+        return $this->_name;
+    }
 
-    @property
-    def desc(self):
-        return self._desc
+    function code() {
+        return $this->_code;
+    }
 
-    @property
-    def parent(self):
-        return self._parent
+    function type() {
+        return $this->_type;
+    }
 
-    @property
-    def quiet(self):
-        return self._quiet
+    function desc() {
+        return $this->_desc;
+    }
 
-    @property
-    def childs(self):
-        return self._childs
+    function parent() {
+        return $this->_parent;
+    }
 
-    @property
-    def options(self):
-        return self._options
+    function quiet() {
+        return $this->_quiet;
+    }
 
-    @property
-    def optional(self):
-        return self._optional
+    function childs() {
+        return $this->_childs;
+    }
 
-    @property
-    def composite(self):
-        return bool(self._childs)
+    function options() {
+        return $this->_options;
+    }
 
-    @property
-    def is_root(self):
-        return bool(not self._parent)
+    function optional() {
+        return $this->_optional;
+    }
 
-    @property
-    def parents(self):
-        parents = []
-        task = self
-        while True:
-            if not task.parent:
-                break
-            parents.append(task.parent)
-            task = task.parent
-        return list(reversed(parents))
+    function composite() {
+        return !!count($this->_childs);
+    }
 
-    @property
-    def qualified_name(self):
-        names = []
-        for parent in (self.parents + [self]):
-            if parent.name:
-                names.append(parent.name)
-        return ' '.join(names)
+    function is_root() {
+        return !$this->_parent;
+    }
 
-    @property
-    def flatten_setup_tasks(self):
-        tasks = []
-        for parent in self.parents:
-            for task in parent.childs:
-                if task is self:
-                    break
-                if task in self.parents:
-                    break
-                if task.type == 'variable':
-                    tasks.append(task)
-        return tasks
+    function parents() {
+        $parents = [];
+        $task = this;
+        while (true) {
+            if (!task.parent) break;
+            array_push($parents, $task->parent());
+            $task = $task->parent();
+        }
+        return array_reverse($parents);
+    }
 
-    @property
-    def flatten_general_tasks(self):
-        tasks = []
-        for task in self.childs or [self]:
-            if task.composite:
-                tasks.extend(task.flatten_general_tasks)
-                continue
-            tasks.append(task)
-        return tasks
+    function qualified_name() {
+        $names = [];
+        foreach (array_merge($this->parents(), [self]) as $parent) {
+            if (parent.name) array_push($names, $parent->name());
+        }
+        return join(' ', $names);
+    }
 
-    @property
-    def flatten_childs_with_composite(self):
-        tasks = []
-        for task in self.childs:
-            tasks.append(task)
-            if task.composite:
-                tasks.extend(task.flatten_childs_with_composite)
-        return tasks
+    function flatten_setup_tasks() {
+        $tasks = [];
+        foreach ($this->parents() as $parent) {
+            foreach ($parent->childs as $task) {
+                if ($task === $this) break;
+                if (in_array($task, $this->parents())) break;
+                if ($task->type() === 'variable') {
+                    array_push($tasks, $task);
+                }
+            }
+        }
+        return tasks;
+    }
 
-    def find_child_tasks_by_name(self, name):
-        tasks = []
-        for task in self.flatten_general_tasks:
-            if task.name == name:
-                tasks.append(task)
-        return tasks
+    function flatten_general_tasks() {
+        $tasks = [];
+        foreach ($this.composite ? $this.childs : [$this] as $task) {
+            if ($task.composite) {
+                $tasks = array_merge($tasks, $task->flatten_general_tasks());
+                continue;
+            }
+            array_push($tasks, $task);
+        }
+        return $tasks;
+    }
 
-    def find_child_task_by_abbrevation(self, abbrevation):
-        letter = abbrevation[0]
-        abbrev = abbrevation[1:]
-        for task in self.childs:
-            if task.name.startswith(letter):
-                if abbrev:
-                    return task.find_child_task_by_abbrevation(abbrev)
-                return task
-        return None
+    function flatten_childs_with_composite() {
+        $tasks = [];
+        foreach ($this.childs() as $task) {
+            array_push($tasks, $task);
+            if ($task->composite()) {
+                $tasks = array_merge($tasks, $task->flatten_childs_with_composite());
+            }
+        }
+        return tasks;
+    }
 
-    def run(self, argv):
-        commands = []
+    function find_child_tasks_by_name($name) {
+        $tasks = [];
+        foreach ($this->flatten_general_tasks() as $task) {
+            if ($task->name() === $name) {
+                array_push($tasks, $task);
+            }
+        }
+        return tasks;
+    }
 
-        # Delegate by name
-        if len(argv) > 0:
-            for task in self.childs:
-                if task.name == argv[0]:
-                    return task.run(argv[1:])
+    function find_child_task_by_abbrevation($abbrevation) {
+        $letter = $abbrevation[0];
+        $abbrev = array_slice($abbrevation, 1);
+        foreach ($this->childs() as $task) {
+            if (substr($task->name(), 0, 1) === $letter) {
+                if ($abbrev) {
+                    return $task->find_child_task_by_abbrevation($abbrev);
+                }
+                return $task;
+            }
+        }
+        return null;
+    }
 
-        # Delegate by abbrevation
-        if len(argv) > 0:
-            if self.is_root:
-                task = self.find_child_task_by_abbrevation(argv[0])
-                if task:
-                    return task.run(argv[1:])
+    function run($argv) {
+        $commands = [];
 
-        # Root task
-        if self.is_root:
-            if len(argv) > 0 and argv != ['?']:
-                message = 'Task "%s" not found' % argv[0]
-                helpers.print_message('general', message=message)
-                exit(1)
-            _print_help(self, self)
-            return True
+        // Delegate by name
+        if ($argv) {
+            foreach ($this->childs() as $child) {
+                if ($task->name() === $argv[0]) {
+                    return $task->complete(array_slice($argv, 1));
+                }
+            }
+        }
 
-        # Prepare filters
-        filters = {'pick': [], 'enable': [], 'disable': []}
-        for name, prefix in [['pick', '='], ['enable', '+'], ['disable', '-']]:
-            for arg in list(argv):
-                if arg.startswith(prefix):
-                    childs = self.find_child_tasks_by_name(arg[1:])
-                    if childs:
-                        filters[name].extend(childs)
-                        argv.remove(arg)
+        // Delegate by abbrevation
+        if ($argv) {
+            if ($this->is_root()) {
+                $task = $this->find_child_task_by_abbrevation($argv[0]);
+                if ($task) {
+                    return $task->run(array_slice($argv, 1));
+                }
+            }
+        }
 
-        # Detect help
-        help = False
-        if argv == ['?']:
-            argv.pop()
-            help = True
+        // Root task
+        if ($this->is_root()) {
+            if ($argv && $argv != ['?']) {
+                $message = `Task "${argv[0]}" not found`;
+                print_message('general', ['message' => $message]);
+                exit(1);
+            }
+            print_help($this, $this);
+            return true;
+        }
 
-        # Collect setup commands
-        for task in self.flatten_setup_tasks:
-            command = Command(task.qualified_name, task.code, variable=task.name)
-            commands.append(command)
+        // Prepare filters
+        $argvCopy = $argv;
+        $filters = ['pick' => [], 'enable' => [], 'disable' => []];
+        $iterator = [['pick', '='], ['enable', '+'], ['disable', '-']];
+        foreach ($iterator as [$name, $prefix]) {
+            foreach ($argvCopy as $arg) {
+                if (substr($name, 0, 1) === $prefix) {
+                    $childs = $this->find_child_tasks_by_name(str_slice($name, 1));
+                    if ($childs) {
+                        $filters[name] = array_merge($filters[name], $childs]);
+                        $argv = array_diff($argv, [$arg]);
+                    }
+                }
+            }
+        }
 
-        # Collect general commands
-        for task in self.flatten_general_tasks:
-            if task is not self and task not in filters['pick']:
-                if task.optional and task not in filters['enable']:
-                    continue
-                if task in filters['disable']:
-                    continue
-                if filters['pick']:
-                    continue
-            variable = task.name if task.type == 'variable' else None
-            command = Command(task.qualified_name, task.code, variable=variable)
-            commands.append(command)
+        // Detect help
+        $help = false;
+        if ($argv === ['?'])) {
+            array_pop($argv);
+            $help = true;
+        }
 
-        # Normalize arguments
-        arguments_index = None
-        for index, command in enumerate(commands):
-            if '$RUNARGS' in command.code:
-                if not command.variable:
-                    arguments_index = index
-                    continue
-            if arguments_index is not None:
-                command.code = command.code.replace('$RUNARGS', '')
+        // Collect setup commands
+        foreach ($this->flatten_setup_tasks() as $task) {
+            $command = new Command($task->qualified_name(), $task->code(), $task->name());
+            array_push($commands, $command);
+        }
 
-        # Provide arguments
-        if arguments_index is None:
-            for index, command in enumerate(commands):
-                if not command.variable:
-                    command.code = '%s $RUNARGS' % command.code
-                    break
+        // Collect general commands
+        foreach ($this->flatten_general_tasks() as $task) {
+            if ($task !== $this && !in_array($filters['pick'], $task)) {
+                if ($task->optional() && !in_array($filters['enable'], $task)) continue;
+                if (in_array($filters['disable'], $task)) continue;
+                if (!filters['pick']) continue;
+            }
+            $variable = $task->type() === 'variable' ? $task->name() : null;
+            $command = new Command($task->qualified_name(), $task->code(), $variable);
+            array_push($commands, $command);
+        }
 
-        # Create plan
-        plan = Plan(commands, self.type)
+        // Normalize arguments
+        $argumentsIndex = null
+            foreach ($commands as $index => $command){
+                if (strpos($command->code(), '$RUNARGS') === false) {
+                    if (!$command->variable()) {
+                        $argumentsIndex = $index;
+                        continue;
+                    }
+                }
+                if ($argumentsIndex !== null) {
+                    $command->code(str_replace($command->code, '$RUNARGS', ''));
+                }
+            }
 
-        # Show help
-        if help:
-            task = self if len(self.parents) < 2 else self.parents[1]
-            _print_help(task, self, plan, filters)
-            exit()
+        // Provide arguments
+        if ($argumentsIndex === null) {
+            foreach ($commands as $index => $command) {
+                if (!$command->variable()) {
+                    $command->code("{$command->code()} $RUNARGS");
+                    break;
+                }
+            }
+        }
 
-        # Execute commands
-        plan.execute(argv,
-            quiet=self.quiet,
-            faketty=self.options.get('faketty'))
+        // Create plan
+        $plan = new Plan($commands, $this->type());
 
-        return True
+        // Show help
+        if ($help) {
+            $task = count($this->parents) < 2 ? $this : $this->parents()[1];
+            print_help($task, $this, $plan, $filters);
+            exit();
+        }
 
-    def complete(self, argv):
+        // Execute commands
+        $plan->execute($argv, $this->quiet(), $this->options()['faketty']);
 
-        # Delegate by name
-        if len(argv) > 0:
-            for task in self.childs:
-                if task.name == argv[0]:
-                    return task.complete(argv[1:])
+        return true;
+    }
 
-        # Autocomplete
-        for child in self.childs:
-            if child.name:
-                print(child.name)
+    function complete($argv) {
 
-        return True
+        // Delegate by name
+        if ($argv) {
+            foreach ($this->childs() as $child) {
+                if ($task->name() === $argv[0]) {
+                    return $task->complete(array_slice($argv, 1));
+                }
+            }
+        }
+
+        // Autocomplete
+        foreach ($this->childs() as $child) {
+            if ($child->name()) {
+                print($child->name());
+            }
+        }
+
+        return true;
+    }
+
+}
 
 
-# Internal
+// Internal
 
-def _print_help(task, selected_task, plan=None, filters=None):
+function print_help($task, $selected_task, $plan, $filters) {
 
-    # General
-    helpers.print_message('general', message=task.qualified_name)
-    helpers.print_message('general', message='\n---')
-    if task.desc:
-        helpers.print_message('general', message='\nDescription\n')
-        print(task.desc)
+    // General
+    print_message('general', ['message' => task.qualified_name]);
+    print_message('general', ['message' => '\n---']);
+    if (!$task->desc()) {
+        print_message('general', ['message' => '\nDescription\n']);
+        print($task->desc());
+    }
 
-    # Vars
-    header = False
-    for child in [task] + task.flatten_childs_with_composite:
-        if child.type == 'variable':
-            if not header:
-                helpers.print_message('general', message='\nVars\n')
-                header = True
-            print(child.qualified_name)
+    // Vars
+    $header = false;
+    for (array_merge([$task], $task->flatten_childs_with_composite()) as $child) {
+        if ($child.type === 'variable') {
+            if (!$header) {
+                print_message('general', ['message': '\nVars\n']);
+                header = true;
+            }
+            print($child->qualified_name());
+        }
+    }
 
-    # Tasks
-    header = False
-    for child in [task] + task.flatten_childs_with_composite:
-        if not child.name:
-            continue
-        if child.type == 'variable':
-            continue
-        if not header:
-            helpers.print_message('general', message='\nTasks\n')
-            header = True
-        message = child.qualified_name
-        if child.optional:
-            message += ' (optional)'
-        if filters:
-            if child in filters['pick']:
-                message += ' (picked)'
-            if child in filters['enable']:
-                message += ' (enabled)'
-            if child in filters['disable']:
-                message += ' (disabled)'
-        if child is selected_task:
-            message += ' (selected)'
-            helpers.print_message('general', message=message)
-        else:
-            print(message)
+    // Tasks
+    $header = false;
+    for (array_merge([$task], $task->flatten_childs_with_composite()) as $child) {
+        if (!$child->name()) continue;
+        if ($child->type() === 'variable') continue;
+        if (!$header) {
+            print_message('general', ['message' => '\nTasks\n']);
+            $header = true;
+        }
+        $message = $child->qualified_name();
+        if ($child->optional()) {
+            $message += ' (optional)';
+        }
+        if ($filters) {
+            if (in_array($filters['pick'], $child)) {
+                $message += ' (picked)';
+            }
+            if (in_array($filters['enable'], $child)) {
+                $message += ' (enabled)';
+            }
+            if (in_array($filters['disable'], $child)) {
+                $message += ' (disabled)';
+            }
+        }
+        if ($child === $selected_task) {
+            $message += ' (selected)';
+            print_message('general', ['message' => $message])
+        } else {
+            print($message);
+        }
+    }
 
-    # Execution plan
-    if plan:
-        helpers.print_message('general', message='\nExecution Plan\n')
-        print(plan.explain())
+    // Execution plan
+    if ($plan) {
+        print_message('general', ['message' => '\nExecution Plan\n']);
+        print($plan->explain());
+    }
+
+}

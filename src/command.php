@@ -1,29 +1,28 @@
-# Module API
+<?php
 
-class Command(object):
+// Module API
 
-    # Public
+class Command {
 
-    def __init__(self, name, code, variable=None):
-        self._name = name
-        self._code = code
-        self._variable = variable
+    // Public
 
-    def __repr__(self):
-        return self._name
+    function __construct($name, $code, $variable=null) {
+        $this->_name = $name;
+        $this->_code = $code;
+        $this->_variable = $variable;
+    }
 
-    @property
-    def name(self):
-        return self._name
+    function name() {
+        return $this->_name;
+    }
 
-    @property
-    def code(self):
-        return self._code
+    function code($value=null) {
+        if ($value) $this->_code = value;
+        return $this->_code;
+    }
 
-    @code.setter
-    def code(self, value):
-        self._code = value
+    function variable() {
+        return $this->_variable;
+    }
 
-    @property
-    def variable(self):
-        return self._variable
+}

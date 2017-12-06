@@ -1,53 +1,81 @@
-# Module API
+<?php
 
-def read_config(path='run.yml'):
+// Module API
 
-    # Bad file
-    if not os.path.isfile(path):
-        message = 'No "%s" found' % path
-        print_message('general', message=message)
-        exit(1)
+function readConfig($path='run.yml') {
 
-    # Read documents
-    with io.open(path, encoding='utf-8') as file:
-        contents = file.read()
-    documents = list(yaml.load_all(contents))
+    // Bad file
+    if (!is_file($path)) {
+        $message = "No '{$path}' found";
+        print_message('general', ['message' => $message]);
+        exit(1);
+    }
 
-    # Get config
-    comments = []
-    config = {'run': []}
-    raw_config = documents[0]
-    for line in contents.split('\n'):
-        if line.startswith('# '):
-            comments.append(line.replace('# ', ''))
-            continue
-        for key, value in raw_config.items():
-            if line.startswith(key):
-                config['run'].append({key: {'code': value, 'desc': '\n'.join(comments)}})
-        if not line.startswith('# '):
-            comments = []
+    // Read documents
+    $documents = [null, null];
+    $contents = explode("---\n", file_get_contents($path));
+    // PHP Yaml doesn't support set type like {value}
+    $contents[0] = preg_replace('/{([\w$]+)}/', '{$1: null}', $contents[0]);
+    $documents[0] = Yaml::parse($contents[0]);
+    $documents[1] = (count($contents) > 1) ? Yaml::parse($contents[1]) : null;
 
-    # Get options
-    options = {}
-    if len(documents) > 1:
-        options = documents[1] or {}
+    // Get config
+    $comments = [];
+    $config = ['run' => []];
+    $rawConfig = $documents[0];
+    foreach (explode("\n", $contents) as $line) {
 
-    return config, options
+        // Comment begin
+        if (substr($line, 0, 2) === '# ') {
+            array_push($comments, str_replace('# ', '', $line));
+            continue;
+        }
+
+        // Add config item
+        foreach ($rowConfig as $key => $value) {
+            if (substr($line, 0, strlen($key)) === $key) {
+                array_push(
+                    $config['run'],
+                    [$key => ['code' => value, 'desc' => join('\n', $comments)]]
+                );
+            }
+        }
+
+        // Commend end
+        if (substr($line, 0, 2) !== '# ') {
+            $comments = [];
+        }
+    }
+
+    // Get options
+    $options = [];
+    if (count($documents) > 1) {
+        $options = $documents[1] || [];
+    }
+
+    return [config, options];
+}
 
 
-def print_message(type, **data):
-    text = click.style(data['message'], bold=True)
-    click.echo(text)
+function print_message($type, $data) {
+    $colorize = new Color();
+    $text .= $colorize($data['message'])->bold();
+    print("${text}\n");
+}
 
 
-def iter_colors():
-    for color in cycle(_COLORS):
-        yield color
+function iter_colors() {
+    while (true) {
+        foreach ($_COLORS as $color) {
+            yield $color;
+        }
+    }
+}
 
 
-# Internal
+// Internal
 
-_COLORS = [
+$_COLORS = [
     'cyan',
     'yellow',
     'green',
@@ -60,4 +88,4 @@ _COLORS = [
     'intense_magenta',
     'intense_red',
     'intense_blue',
-]
+];
