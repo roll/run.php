@@ -1,10 +1,13 @@
 <?php
 require_once('vendor/autoload.php');
+require_once(dirname(__FILE__) . '/task.php');
+require_once(dirname(__FILE__) . '/helpers.php');
+
 
 // Main program
 
 # Arguments
-$argv = array_slice($argv);
+$argv = array_slice($argv, 1);
 
 # Path argument
 $path = 'run.yml';
@@ -32,4 +35,4 @@ if ($complete) {
 }
 
 # Run
-task->run(argv);
+$task->run($argv);

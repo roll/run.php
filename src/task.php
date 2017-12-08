@@ -1,21 +1,22 @@
 <?php
 
+
 // Module API
 
 class Task {
 
     // Public
 
-    function __construct($descriptor, $options, $parent, $parent_type, $quiet) {
-        $this->_parent = parent;
+    function __construct($descriptor, $options, $parent=null, $parent_type=null, $quiet=false) {
+        $this->_parent = $parent;
 
         // Prepare
-        $desc = parent ? '' : 'General run description';
+        $desc = $parent ? '' : 'General run description';
         foreach(array_slice($descriptor, 0, 1) as $key => $value) {
             $name = $key;
             $code = $value;
         }
-        if (is_array($code)) {
+        if (is_array($code) && array_key_exists('code', $code)) {
             $desc = $code['desc'];
             $code = $code['code'];
         }
@@ -23,7 +24,7 @@ class Task {
         // Optional
         $optional = false;
         if (substr($name, 0, 1) === '/') {
-            $name = array_slice($name, 1);
+            $name = substr($name, 1);
             $optional = true;
         }
 
@@ -37,7 +38,7 @@ class Task {
         $type = 'directive';
 
         // Variable type
-        if ($name === strtoupper($name)) {
+        if ($name && $name === strtoupper($name)) {
             $type = 'variable';
             $desc = 'Prints the variable';
         }
@@ -59,20 +60,20 @@ class Task {
                     print_message('general', ['message' => message]);
                     exit(1);
                 }
-                $name = array_slice($name, 1, -1);
+                $name = substr($name, 1, -1);
                 $type = 'parallel';
             }
 
             // Multiplex type
             if (substr($name, 0, 1) === '(' && substr($name, -1, 1) === ')') {
-                $name = array_slice($name, 1, -1);
+                $name = substr($name, 1, -1);
                 $type = 'multiplex';
             }
 
             // Create childs
             foreach ($code as $descriptor) {
                 if (!is_array($descriptor)) $descriptor = ['' => $descriptor];
-                array_push($childs, new Task($descriptor, $options, self, $type, $quiet));
+                array_push($childs, new Task($descriptor, $options, $this, $type, $quiet));
             }
 
             // Reset code
@@ -81,14 +82,14 @@ class Task {
         }
 
         // Set attributes
-        $this->_name = name;
-        $this->_code = code;
-        $this->_type = type;
-        $this->_desc = desc;
-        $this->_quiet = quiet;
-        $this->_childs = childs;
-        $this->_options = options;
-        $this->_optional = optional;
+        $this->_name = $name;
+        $this->_code = $code;
+        $this->_type = $type;
+        $this->_desc = $desc;
+        $this->_quiet = $quiet;
+        $this->_childs = $childs;
+        $this->_options = $options;
+        $this->_optional = $optional;
 
     }
 
@@ -132,30 +133,30 @@ class Task {
         return !!count($this->_childs);
     }
 
-    function is_root() {
+    function isRoot() {
         return !$this->_parent;
     }
 
     function parents() {
         $parents = [];
-        $task = this;
+        $task = $this;
         while (true) {
-            if (!task.parent) break;
+            if (!$task->parent()) break;
             array_push($parents, $task->parent());
             $task = $task->parent();
         }
         return array_reverse($parents);
     }
 
-    function qualified_name() {
+    function qualifiedName() {
         $names = [];
-        foreach (array_merge($this->parents(), [self]) as $parent) {
-            if (parent.name) array_push($names, $parent->name());
+        foreach (array_merge($this->parents(), [$this]) as $parent) {
+            if ($parent->name()) array_push($names, $parent->name());
         }
         return join(' ', $names);
     }
 
-    function flatten_setup_tasks() {
+    function flattenSetupTasks() {
         $tasks = [];
         foreach ($this->parents() as $parent) {
             foreach ($parent->childs as $task) {
@@ -169,11 +170,11 @@ class Task {
         return tasks;
     }
 
-    function flatten_general_tasks() {
+    function flattenGeneralTasks() {
         $tasks = [];
         foreach ($this.composite ? $this.childs : [$this] as $task) {
             if ($task.composite) {
-                $tasks = array_merge($tasks, $task->flatten_general_tasks());
+                $tasks = array_merge($tasks, $task->flattenGeneralTasks());
                 continue;
             }
             array_push($tasks, $task);
@@ -181,34 +182,34 @@ class Task {
         return $tasks;
     }
 
-    function flatten_childs_with_composite() {
+    function flattenChildsWithComposite() {
         $tasks = [];
-        foreach ($this.childs() as $task) {
+        foreach ($this->childs() as $task) {
             array_push($tasks, $task);
             if ($task->composite()) {
-                $tasks = array_merge($tasks, $task->flatten_childs_with_composite());
+                $tasks = array_merge($tasks, $task->flattenChildsWithComposite());
             }
         }
-        return tasks;
+        return $tasks;
     }
 
-    function find_child_tasks_by_name($name) {
+    function findChildTasksByName($name) {
         $tasks = [];
-        foreach ($this->flatten_general_tasks() as $task) {
+        foreach ($this->flattenGeneralTasks() as $task) {
             if ($task->name() === $name) {
                 array_push($tasks, $task);
             }
         }
-        return tasks;
+        return $tasks;
     }
 
-    function find_child_task_by_abbrevation($abbrevation) {
+    function findChildTasksByAbbrevation($abbrevation) {
         $letter = $abbrevation[0];
-        $abbrev = array_slice($abbrevation, 1);
+        $abbrev = substr($abbrevation, 1);
         foreach ($this->childs() as $task) {
             if (substr($task->name(), 0, 1) === $letter) {
                 if ($abbrev) {
-                    return $task->find_child_task_by_abbrevation($abbrev);
+                    return $task->findChildTasksByAbbrevation($abbrev);
                 }
                 return $task;
             }
@@ -221,7 +222,7 @@ class Task {
 
         // Delegate by name
         if ($argv) {
-            foreach ($this->childs() as $child) {
+            foreach ($this->childs() as $task) {
                 if ($task->name() === $argv[0]) {
                     return $task->complete(array_slice($argv, 1));
                 }
@@ -230,8 +231,8 @@ class Task {
 
         // Delegate by abbrevation
         if ($argv) {
-            if ($this->is_root()) {
-                $task = $this->find_child_task_by_abbrevation($argv[0]);
+            if ($this->isRoot()) {
+                $task = $this->findChildTasksByAbbrevation($argv[0]);
                 if ($task) {
                     return $task->run(array_slice($argv, 1));
                 }
@@ -239,13 +240,13 @@ class Task {
         }
 
         // Root task
-        if ($this->is_root()) {
+        if ($this->isRoot()) {
             if ($argv && $argv != ['?']) {
                 $message = `Task "${argv[0]}" not found`;
                 print_message('general', ['message' => $message]);
                 exit(1);
             }
-            print_help($this, $this);
+            _print_help($this, $this);
             return true;
         }
 
@@ -256,9 +257,9 @@ class Task {
         foreach ($iterator as [$name, $prefix]) {
             foreach ($argvCopy as $arg) {
                 if (substr($name, 0, 1) === $prefix) {
-                    $childs = $this->find_child_tasks_by_name(str_slice($name, 1));
+                    $childs = $this->findChildTasksByName(str_slice($name, 1));
                     if ($childs) {
-                        $filters[name] = array_merge($filters[name], $childs]);
+                        $filters[name] = array_merge($filters[name], $childs);
                         $argv = array_diff($argv, [$arg]);
                     }
                 }
@@ -267,42 +268,42 @@ class Task {
 
         // Detect help
         $help = false;
-        if ($argv === ['?'])) {
+        if ($argv === ['?']) {
             array_pop($argv);
             $help = true;
         }
 
         // Collect setup commands
-        foreach ($this->flatten_setup_tasks() as $task) {
-            $command = new Command($task->qualified_name(), $task->code(), $task->name());
+        foreach ($this->flattenSetupTasks() as $task) {
+            $command = new Command($task->qualifiedName(), $task->code(), $task->name());
             array_push($commands, $command);
         }
 
         // Collect general commands
-        foreach ($this->flatten_general_tasks() as $task) {
+        foreach ($this->flattenGeneralTasks() as $task) {
             if ($task !== $this && !in_array($filters['pick'], $task)) {
                 if ($task->optional() && !in_array($filters['enable'], $task)) continue;
                 if (in_array($filters['disable'], $task)) continue;
                 if (!filters['pick']) continue;
             }
             $variable = $task->type() === 'variable' ? $task->name() : null;
-            $command = new Command($task->qualified_name(), $task->code(), $variable);
+            $command = new Command($task->qualifiedName(), $task->code(), $variable);
             array_push($commands, $command);
         }
 
         // Normalize arguments
-        $argumentsIndex = null
-            foreach ($commands as $index => $command){
-                if (strpos($command->code(), '$RUNARGS') === false) {
-                    if (!$command->variable()) {
-                        $argumentsIndex = $index;
-                        continue;
-                    }
-                }
-                if ($argumentsIndex !== null) {
-                    $command->code(str_replace($command->code, '$RUNARGS', ''));
+        $argumentsIndex = null;
+        foreach ($commands as $index => $command){
+            if (strpos($command->code(), '$RUNARGS') === false) {
+                if (!$command->variable()) {
+                    $argumentsIndex = $index;
+                    continue;
                 }
             }
+            if ($argumentsIndex !== null) {
+                $command->code(str_replace($command->code, '$RUNARGS', ''));
+            }
+        }
 
         // Provide arguments
         if ($argumentsIndex === null) {
@@ -320,7 +321,7 @@ class Task {
         // Show help
         if ($help) {
             $task = count($this->parents) < 2 ? $this : $this->parents()[1];
-            print_help($task, $this, $plan, $filters);
+            _print_help($task, $this, $plan, $filters);
             exit();
         }
 
@@ -334,7 +335,7 @@ class Task {
 
         // Delegate by name
         if ($argv) {
-            foreach ($this->childs() as $child) {
+            foreach ($this->childs() as $task) {
                 if ($task->name() === $argv[0]) {
                     return $task->complete(array_slice($argv, 1));
                 }
@@ -356,63 +357,63 @@ class Task {
 
 // Internal
 
-function print_help($task, $selected_task, $plan, $filters) {
+function _print_help($task, $selected_task, $plan=null, $filters=null) {
 
     // General
-    print_message('general', ['message' => task.qualified_name]);
-    print_message('general', ['message' => '\n---']);
+    print_message('general', ['message' => $task->qualifiedName()]);
+    print_message('general', ['message' => "\n---"]);
     if (!$task->desc()) {
-        print_message('general', ['message' => '\nDescription\n']);
+        print_message('general', ['message' => "\nDescription\n"]);
         print($task->desc());
     }
 
     // Vars
     $header = false;
-    for (array_merge([$task], $task->flatten_childs_with_composite()) as $child) {
-        if ($child.type === 'variable') {
+    foreach (array_merge([$task], $task->flattenChildsWithComposite()) as $child) {
+        if ($child->type() === 'variable') {
             if (!$header) {
-                print_message('general', ['message': '\nVars\n']);
-                header = true;
+                print_message('general', ['message' => "\nVars\n"]);
+                $header = true;
             }
-            print($child->qualified_name());
+            print($child->qualifiedName() . PHP_EOL);
         }
     }
 
     // Tasks
     $header = false;
-    for (array_merge([$task], $task->flatten_childs_with_composite()) as $child) {
+    foreach (array_merge([$task], $task->flattenChildsWithComposite()) as $child) {
         if (!$child->name()) continue;
         if ($child->type() === 'variable') continue;
         if (!$header) {
-            print_message('general', ['message' => '\nTasks\n']);
+            print_message('general', ['message' => "\nTasks\n"]);
             $header = true;
         }
-        $message = $child->qualified_name();
+        $message = $child->qualifiedName();
         if ($child->optional()) {
-            $message += ' (optional)';
+            $message .= ' (optional)';
         }
         if ($filters) {
             if (in_array($filters['pick'], $child)) {
-                $message += ' (picked)';
+                $message .= ' (picked)';
             }
             if (in_array($filters['enable'], $child)) {
-                $message += ' (enabled)';
+                $message .= ' (enabled)';
             }
             if (in_array($filters['disable'], $child)) {
-                $message += ' (disabled)';
+                $message .= ' (disabled)';
             }
         }
         if ($child === $selected_task) {
-            $message += ' (selected)';
-            print_message('general', ['message' => $message])
+            $message .= ' (selected)';
+            print_message('general', ['message' => $message]);
         } else {
-            print($message);
+            print($message . PHP_EOL);
         }
     }
 
     // Execution plan
     if ($plan) {
-        print_message('general', ['message' => '\nExecution Plan\n']);
+        print_message('general', ['message' => "\nExecution Plan\n"]);
         print($plan->explain());
     }
 

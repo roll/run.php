@@ -3,3 +3,5 @@
 /coverage-clover.xml
 /composer.lock
 /composer.phar
+.env
+run.yml

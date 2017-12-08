@@ -1,8 +1,11 @@
 <?php
+use Colors\Color;
+use Symfony\Component\Yaml\Yaml;
+
 
 // Module API
 
-function readConfig($path='run.yml') {
+function read_config($path='run.yml') {
 
     // Bad file
     if (!is_file($path)) {
@@ -23,7 +26,7 @@ function readConfig($path='run.yml') {
     $comments = [];
     $config = ['run' => []];
     $rawConfig = $documents[0];
-    foreach (explode("\n", $contents) as $line) {
+    foreach (explode("\n", $contents[0]) as $line) {
 
         // Comment begin
         if (substr($line, 0, 2) === '# ') {
@@ -32,11 +35,11 @@ function readConfig($path='run.yml') {
         }
 
         // Add config item
-        foreach ($rowConfig as $key => $value) {
+        foreach ($rawConfig as $key => $value) {
             if (substr($line, 0, strlen($key)) === $key) {
                 array_push(
                     $config['run'],
-                    [$key => ['code' => value, 'desc' => join('\n', $comments)]]
+                    [$key => ['code' => $value, 'desc' => join('\n', $comments)]]
                 );
             }
         }
@@ -53,13 +56,13 @@ function readConfig($path='run.yml') {
         $options = $documents[1] || [];
     }
 
-    return [config, options];
+    return [$config, $options];
 }
 
 
 function print_message($type, $data) {
     $colorize = new Color();
-    $text .= $colorize($data['message'])->bold();
+    $text = $colorize($data['message'])->bold();
     print("${text}\n");
 }
 

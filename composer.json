@@ -1,5 +1,6 @@
 {
     "name": "runyml/run.yml",
+    "version": "v0.1.0",
     "description": "run.yml",
     "license": "MIT",
     "require": {

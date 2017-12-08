@@ -1,5 +1,6 @@
 <?php
 
+
 // Module API
 
 function applyFaketty($code, $faketty=false) {
