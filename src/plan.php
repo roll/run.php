@@ -48,7 +48,7 @@ class Plan {
                 array_push($varnames, $command->variable());
                 $commands = array_diff($commands, [$command]);
             }
-            executeSync($variables, $_ENV, $quiet);
+            execute_sync($variables, $_ENV, $quiet);
             if (!count($commands)) {
                 print($_ENV[$varnames[count($varnames) - 1]]);
                 return;
@@ -76,19 +76,19 @@ class Plan {
 
         // Directive
         if ($this->_mode === 'directive') {
-            executeSync($commands, $_ENV, $quiet);
+            execute_sync($commands, $_ENV, $quiet);
 
             // Sequence
         } else if ($this->_mode === 'sequence') {
-            executeSync($commands, $_ENV, $quiet);
+            execute_sync($commands, $_ENV, $quiet);
 
             // Parallel
         } else if ($this->_mode === 'parallel') {
-            executeAsync($commands, $_ENV, $quiet, $faketty);
+            execute_async($commands, $_ENV, $quiet, $faketty);
 
             // Multiplex
         } else if ($this->_mode === 'multiplex') {
-            executeAsync($commands, $_ENV, true, $quiet, $faketty);
+            execute_async($commands, $_ENV, true, $quiet, $faketty);
         }
 
         // Log finished

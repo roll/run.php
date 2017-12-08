@@ -3,7 +3,7 @@
 
 // Module API
 
-function executeSync($commands, $environ, $quiet) {
+function execute_sync($commands, $environ, $quiet) {
     foreach($commands as $command) {
 
         # Log process
@@ -40,13 +40,13 @@ function executeSync($commands, $environ, $quiet) {
 }
 
 
-function executeAsync($commands, $environ, $multiplex, $quiet, $faketty) {
+function execute_async($commands, $environ, $multiplex, $quiet, $faketty) {
 
 }
 
 
 # Internal
 
-function _printLine($line, $name, $color, $multiplex, $quiet) {
+function _print_line($line, $name, $color, $multiplex, $quiet) {
 
 }

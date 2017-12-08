@@ -347,7 +347,7 @@ class Task {
         // Autocomplete
         foreach ($this->childs() as $child) {
             if ($child->name()) {
-                print($child->name());
+                print($child->name() . PHP_EOL);
             }
         }
 

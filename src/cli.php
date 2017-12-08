@@ -30,7 +30,7 @@ $task = new Task($config, $options);
 
 # Complete
 if ($complete) {
-    $task->complete(argv);
+    $task->complete($argv);
     exit();
 }
 
