@@ -21,14 +21,14 @@ class Plan {
             if (in_array($this->_mode, ['sequence', 'parallel', 'multiplex'])) {
                 if (!$command->variable()) {
                     $mode = strtoupper($this->_mode);
-                    if ($plain) $lines.push("[{$mode}]");
+                    if ($plain) array_push($lines, "[{$mode}]");
                     $plain = false;
                 }
             }
             $code = $command->code();
             if ($command->variable()) $code = "{$command->variable()}='{$command->code()}'";
             $indent = str_repeat(' ', $plain ? 0 : 4);
-            array_push($lines, "{$indent} {$code}");
+            array_push($lines, "{$indent}\$ {$code}");
         }
 
         return join("\n", $lines);

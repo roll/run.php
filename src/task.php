@@ -1,4 +1,6 @@
 <?php
+require_once(dirname(__FILE__) . '/plan.php');
+require_once(dirname(__FILE__) . '/command.php');
 
 
 // Module API
@@ -159,7 +161,7 @@ class Task {
     function flattenSetupTasks() {
         $tasks = [];
         foreach ($this->parents() as $parent) {
-            foreach ($parent->childs as $task) {
+            foreach ($parent->childs() as $task) {
                 if ($task === $this) break;
                 if (in_array($task, $this->parents())) break;
                 if ($task->type() === 'variable') {
@@ -167,13 +169,13 @@ class Task {
                 }
             }
         }
-        return tasks;
+        return $tasks;
     }
 
     function flattenGeneralTasks() {
         $tasks = [];
-        foreach ($this.composite ? $this.childs : [$this] as $task) {
-            if ($task.composite) {
+        foreach ($this->composite() ? $this->childs() : [$this] as $task) {
+            if ($task->composite()) {
                 $tasks = array_merge($tasks, $task->flattenGeneralTasks());
                 continue;
             }
@@ -224,7 +226,7 @@ class Task {
         if ($argv) {
             foreach ($this->childs() as $task) {
                 if ($task->name() === $argv[0]) {
-                    return $task->complete(array_slice($argv, 1));
+                    return $task->run(array_slice($argv, 1));
                 }
             }
         }
@@ -281,10 +283,10 @@ class Task {
 
         // Collect general commands
         foreach ($this->flattenGeneralTasks() as $task) {
-            if ($task !== $this && !in_array($filters['pick'], $task)) {
+            if ($task !== $this && !in_array($task, $filters['pick'])) {
                 if ($task->optional() && !in_array($filters['enable'], $task)) continue;
-                if (in_array($filters['disable'], $task)) continue;
-                if (!filters['pick']) continue;
+                if (in_array($task, $filters['disable'])) continue;
+                if (!empty($filters['pick'])) continue;
             }
             $variable = $task->type() === 'variable' ? $task->name() : null;
             $command = new Command($task->qualifiedName(), $task->code(), $variable);
@@ -301,7 +303,7 @@ class Task {
                 }
             }
             if ($argumentsIndex !== null) {
-                $command->code(str_replace($command->code, '$RUNARGS', ''));
+                $command->code(str_replace($command->code(), '$RUNARGS', ''));
             }
         }
 
@@ -320,7 +322,7 @@ class Task {
 
         // Show help
         if ($help) {
-            $task = count($this->parents) < 2 ? $this : $this->parents()[1];
+            $task = count($this->parents()) < 2 ? $this : $this->parents()[1];
             _print_help($task, $this, $plan, $filters);
             exit();
         }
@@ -393,13 +395,13 @@ function _print_help($task, $selected_task, $plan=null, $filters=null) {
             $message .= ' (optional)';
         }
         if ($filters) {
-            if (in_array($filters['pick'], $child)) {
+            if (in_array($child, $filters['pick'])) {
                 $message .= ' (picked)';
             }
-            if (in_array($filters['enable'], $child)) {
+            if (in_array($child, $filters['enable'])) {
                 $message .= ' (enabled)';
             }
-            if (in_array($filters['disable'], $child)) {
+            if (in_array($child, $filters['disable'])) {
                 $message .= ' (disabled)';
             }
         }
@@ -414,7 +416,7 @@ function _print_help($task, $selected_task, $plan=null, $filters=null) {
     // Execution plan
     if ($plan) {
         print_message('general', ['message' => "\nExecution Plan\n"]);
-        print($plan->explain());
+        print($plan->explain() . PHP_EOL);
     }
 
 }
