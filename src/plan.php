@@ -51,7 +51,7 @@ class Plan {
             }
             execute_sync($variables, $_ENV, $quiet);
             if (!$commands) {
-                print($_ENV[$varnames[count($varnames) - 1]]);
+                print($_ENV[$varnames[count($varnames) - 1]] . PHP_EOL);
                 return;
             }
         }
@@ -60,7 +60,8 @@ class Plan {
         $_ENV['RUNARGS'] = join(' ', $argv);
         $runvars = $_ENV['RUNVARS'] ?? null;
         if ($runvars) {
-            $dotenv = new Dotenv\Dotenv('.', $runvars);
+            $path = realpath($runvars);
+            $dotenv = new Dotenv\Dotenv(dirname($path), basename($path));
             $dotenv->load();
         }
 

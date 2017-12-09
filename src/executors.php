@@ -3,7 +3,7 @@
 
 // Module API
 
-function execute_sync($commands, $environ, $quiet) {
+function execute_sync($commands, &$environ, $quiet) {
     foreach($commands as $command) {
 
         # Log process
@@ -28,7 +28,7 @@ function execute_sync($commands, $environ, $quiet) {
         }
         $return_value = proc_close($process);
         if ($command->variable()) {
-            $environ[$command->variable()] = $output;
+            $environ[$command->variable()] = trim($output);
         }
 
         # Failed process
@@ -42,7 +42,7 @@ function execute_sync($commands, $environ, $quiet) {
 }
 
 
-function execute_async($commands, $environ, $multiplex, $quiet, $faketty) {
+function execute_async($commands, &$environ, $multiplex, $quiet, $faketty) {
 
 }
 
