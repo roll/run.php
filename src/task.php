@@ -258,10 +258,10 @@ class Task {
         $iterator = [['pick', '='], ['enable', '+'], ['disable', '-']];
         foreach ($iterator as [$name, $prefix]) {
             foreach ($argvCopy as $arg) {
-                if (substr($name, 0, 1) === $prefix) {
-                    $childs = $this->findChildTasksByName(str_slice($name, 1));
+                if (substr($arg, 0, 1) === $prefix) {
+                    $childs = $this->findChildTasksByName(substr($arg, 1));
                     if ($childs) {
-                        $filters[name] = array_merge($filters[name], $childs);
+                        $filters[$name] = array_merge($filters[$name], $childs);
                         $argv = array_diff($argv, [$arg]);
                     }
                 }
