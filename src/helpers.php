@@ -68,27 +68,23 @@ function print_message($type, $data) {
 
 
 function iter_colors() {
+    $COLORS = [
+        'cyan',
+        'yellow',
+        'green',
+        'magenta',
+        'red',
+        'blue',
+        'intense_cyan',
+        'intense_yellow',
+        'intense_green',
+        'intense_magenta',
+        'intense_red',
+        'intense_blue',
+    ];
     while (true) {
-        foreach ($_COLORS as $color) {
+        foreach ($COLORS as $color) {
             yield $color;
         }
     }
 }
-
-
-// Internal
-
-$_COLORS = [
-    'cyan',
-    'yellow',
-    'green',
-    'magenta',
-    'red',
-    'blue',
-    'intense_cyan',
-    'intense_yellow',
-    'intense_green',
-    'intense_magenta',
-    'intense_red',
-    'intense_blue',
-];

@@ -87,7 +87,7 @@ class Plan {
 
             // Parallel
         } else if ($this->_mode === 'parallel') {
-            execute_async($commands, $_ENV, $quiet, $faketty);
+            execute_async($commands, $_ENV, false, $quiet, $faketty);
 
             // Multiplex
         } else if ($this->_mode === 'multiplex') {
