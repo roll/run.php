@@ -32,7 +32,7 @@ class Task {
 
         // Quiet
         if (strpos($name, '!') !== false) {
-            $name = str_replace($name, '!', '');
+            $name = str_replace('!', '', $name);
             $quiet = true;
         }
 
@@ -244,7 +244,7 @@ class Task {
         // Root task
         if ($this->isRoot()) {
             if ($argv && $argv != ['?']) {
-                $message = `Task "${argv[0]}" not found`;
+                $message = "Task '{$argv[0]}' not found";
                 print_message('general', ['message' => $message]);
                 exit(1);
             }
