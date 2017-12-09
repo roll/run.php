@@ -284,7 +284,7 @@ class Task {
         // Collect general commands
         foreach ($this->flattenGeneralTasks() as $task) {
             if ($task !== $this && !in_array($task, $filters['pick'])) {
-                if ($task->optional() && !in_array($filters['enable'], $task)) continue;
+                if ($task->optional() && !in_array($task, $filters['enable'])) continue;
                 if (in_array($task, $filters['disable'])) continue;
                 if (!empty($filters['pick'])) continue;
             }
