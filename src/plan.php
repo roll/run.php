@@ -1,4 +1,5 @@
 <?php
+require_once(dirname(__FILE__) . '/executors.php');
 
 
 // Module API
@@ -46,10 +47,10 @@ class Plan {
             if ($command->variable()) {
                 array_push($variables, $command);
                 array_push($varnames, $command->variable());
-                $commands = array_diff($commands, [$command]);
+                array_splice($commands, array_search($command, $commands), 1);
             }
             execute_sync($variables, $_ENV, $quiet);
-            if (!count($commands)) {
+            if (!$commands) {
                 print($_ENV[$varnames[count($varnames) - 1]]);
                 return;
             }
@@ -57,7 +58,7 @@ class Plan {
 
         // Update environ
         $_ENV['RUNARGS'] = join(' ', $argv);
-        $runvars = $_ENV['RUNVARS'];
+        $runvars = $_ENV['RUNVARS'] ?? null;
         if ($runvars) {
             $dotenv = new Dotenv\Dotenv('.', $runvars);
             $dotenv->load();
@@ -65,13 +66,14 @@ class Plan {
 
         // Log prepared
         $start = microtime(true);
-        if (!quiet) {
+        if (!$quiet) {
             $items = [];
             foreach (array_merge($varnames, ['RUNARGS']) as $name) {
-                array_push($items, "{$name}={$_ENV[$name]}");
+                $value = $_ENV[$name] ?? '';
+                array_push($items, "{$name}={$value}");
             }
             $items = join('; ', $items);
-            print("[run] Prepared '{$items}'");
+            print("[run] Prepared '{$items}'" . PHP_EOL);
         }
 
         // Directive
@@ -93,9 +95,9 @@ class Plan {
 
         // Log finished
         $stop = microtime(true);
-        if (!quiet) {
-            $time = $start - $stop;
-            print("[run] Finished in {$time} seconds");
+        if (!$quiet) {
+            $time = number_format($stop - $start, 2, '.', '');
+            print("[run] Finished in {$time} seconds" . PHP_EOL);
         }
 
     }

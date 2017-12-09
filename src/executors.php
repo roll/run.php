@@ -13,7 +13,7 @@ function execute_sync($commands, $environ, $quiet) {
 
         # Create process
         $descriptorspec = [];
-        if ($command->variables()) {
+        if ($command->variable()) {
             $descriptorspec = [
                1 => array("pipe", "w"),
                2 => array("pipe", "w"),
@@ -22,11 +22,13 @@ function execute_sync($commands, $environ, $quiet) {
         $process = proc_open($command->code(), $descriptorspec, $pipes, null, $environ);
 
         # Wait process
-        $output = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
+        if ($pipes) {
+            $output = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+        }
         $return_value = proc_close($process);
-        if ($command->variables()) {
-            $environ[$command->variable()] = $ouput;
+        if ($command->variable()) {
+            $environ[$command->variable()] = $output;
         }
 
         # Failed process
